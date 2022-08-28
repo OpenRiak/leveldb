@@ -1,16 +1,45 @@
-build_config.mk
-include/leveldb/ldb_config.h
+# ===== Common Development Tools =====
+*.bak
+*.dump
+*.iml
+*.orig
+*.plt
+*.sublime-project
+*.sublime-workspace
+*.swo
+*.swp
+*.tmp
+*~
+.DS_Store
+.concrete/
+.idea/
+.project
+.settings/
+.tm_properties
+.vscode/
+/*.txt
+erln8.config
+tmp/
+
+# ===== Common NIF Elements =====
 *.a
-*.o
-*.dylib*
-*.dSYM
 *.d
+*.dSYM
+*.dylib*
+*.o
 *.so
 *.so.*
+
+# ===== Project-specific Elements =====
+
 *_test
+build_config.mk
 db_bench
+include/leveldb/ldb_config.h
 leveldb_repair
 perf_dump
-sst_scan
 sst_rewrite
-*~
+sst_scan
+
+# no longer a submodule!
+/leveldb_ee/
