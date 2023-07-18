@@ -63,16 +63,8 @@ fi
 case "$TARGET_OS" in
     Darwin)
         PLATFORM=OS_MACOSX
-        oIFS="$IFS"; IFS=.
-        set `uname -r`
-        IFS="$oIFS"
-        if [ "$1" -ge 13 ]; then
-            # assume clang compiler
-            COMMON_FLAGS="-mmacosx-version-min=10.8 -DOS_MACOSX -stdlib=libc++"
-            PLATFORM_LDFLAGS="-mmacosx-version-min=10.8"
-        else
-            COMMON_FLAGS="-fno-builtin-memcmp -DOS_MACOSX"
-        fi
+        COMMON_FLAGS="-DOS_MACOSX -stdlib=libc++"
+        PLATFORM_LDFLAGS=
         PLATFORM_SHARED_EXT=
         PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name "
         PORT_FILE=port/port_posix.cc
@@ -154,16 +146,18 @@ if [ "$CROSS_COMPILE" = "true" ]; then
     # Cross-compiling; do not try any compilation tests.
     true
 else
-    # If -std=c++0x works, use <cstdatomic>.  Otherwise use port_posix.h.
-    $CXX $CFLAGS -std=c++0x -x c++ - -o /dev/null 2>/dev/null  <<EOF
-      #include <cstdatomic>
-      int main() {}
-EOF
+    COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_PLATFORM_POSIX"
+    # First, see whether the compiler accepts the -std=c++11 switch at all ...
+    printf 'int main() {return 0;}\n' \
+        | $CXX $CFLAGS -std=c++11 -x c++ - -o /dev/null 2>/dev/null
     if [ "$?" = 0 ]; then
-        COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_PLATFORM_POSIX -DLEVELDB_CSTDATOMIC_PRESENT"
-        PLATFORM_CXXFLAGS="-std=c++0x"
-    else
-        COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_PLATFORM_POSIX"
+        PLATFORM_CXXFLAGS="-std=c++11"
+        # Now check for <cstdatomic>, otherwise use port_posix.h.
+        printf '#include <cstdatomic>\nint main() {return 0;}\n' \
+            | $CXX $CFLAGS -std=c++11 -x c++ - -o /dev/null 2>/dev/null
+        if [ "$?" = 0 ]; then
+            COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_CSTDATOMIC_PRESENT"
+        fi
     fi
 
     # Test whether Snappy library is installed
