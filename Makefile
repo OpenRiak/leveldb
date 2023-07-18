@@ -194,6 +194,10 @@ else
 
 ## 	@echo -- Creating dependency file for $<
 %.d: %.cc
+	$(CXX) $(CXXFLAGS) $(PLATFORM_SHARED_CFLAGS) -MM -E -MT $(basename $@).d -MT $(basename $@).o -MF $@ $<
+	@echo $(basename $@).o: $(basename $@).d >>$@
+
+%.d: %.c
 	$(CC) $(CFLAGS) $(PLATFORM_SHARED_CFLAGS) -MM -E -MT $(basename $@).d -MT $(basename $@).o -MF $@ $<
 	@echo $(basename $@).o: $(basename $@).d >>$@
 
