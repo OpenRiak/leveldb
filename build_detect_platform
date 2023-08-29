@@ -173,7 +173,7 @@ EOF
       int main() {}
 EOF
     if [ "$?" = 0 ]; then
-        echo "Snappy detected ..."
+        echo "Snappy detected ..." >> $OUTPUT
         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
         if [ "$PLATFORM" = "OS_LINUX" ]; then
             # Basho: switching to static snappy library to make tools more portable
