@@ -166,20 +166,24 @@ EOF
         COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_PLATFORM_POSIX"
     fi
 
-    # Test whether Snappy library is installed
-    # http://code.google.com/p/snappy/
-    $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-      #include <snappy.h>
-      int main() {}
-EOF
-    if [ "$?" = 0 ]; then
-        echo "****** Snappy detected ******"
+
+    if  [ "$PLATFORM" = "OS_MACOSX" ]; then
+        # Snappy detection issue on OSX - try and force rather than detect
         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
-        if [ "$PLATFORM" = "OS_LINUX" ]; then
-            # Basho: switching to static snappy library to make tools more portable
-            PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -Wl,-non_shared -lsnappy -Wl,-call_shared"
-        else
-            PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+    else
+        $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+            #include <snappy.h>
+            int main() {}
+EOF
+        if [ "$?" = 0 ]; then
+            COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+            if [ "$PLATFORM" = "OS_LINUX" ]; then
+                # Basho: switching to static snappy library to make tools more portable
+                PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -Wl,-non_shared -lsnappy -Wl,-call_shared"
+            else
+                PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
+            fi
         fi
     fi
 
