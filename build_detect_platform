@@ -74,8 +74,7 @@ case "$TARGET_OS" in
             COMMON_FLAGS="-fno-builtin-memcmp -DOS_MACOSX"
         fi
         PLATFORM_SHARED_EXT=
-        PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name -L../system/lib"
-        PLATFORM_CXXFLAGS="-I../system/include"
+        PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name "
         PORT_FILE=port/port_posix.cc
         ;;
     Linux)
@@ -167,24 +166,19 @@ EOF
         COMMON_FLAGS="$COMMON_FLAGS -DLEVELDB_PLATFORM_POSIX"
     fi
 
-
-    if  [ "$PLATFORM" = "OS_MACOSX" ]; then
-        # Snappy detection issue on OSX - try and force rather than detect
-        COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
-        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
-    else
-        $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-            #include <snappy.h>
-            int main() {}
+    # Test whether Snappy library is installed
+    # http://code.google.com/p/snappy/
+    $CXX $CFLAGS $LDFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+      #include <snappy.h>
+      int main() {}
 EOF
-        if [ "$?" = 0 ]; then
-            COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
-            if [ "$PLATFORM" = "OS_LINUX" ]; then
-                # Basho: switching to static snappy library to make tools more portable
-                PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -Wl,-non_shared -lsnappy -Wl,-call_shared"
-            else
-                PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
-            fi
+    if [ "$?" = 0 ]; then
+        COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
+        if [ "$PLATFORM" = "OS_LINUX" ]; then
+            # Basho: switching to static snappy library to make tools more portable
+            PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -Wl,-non_shared -lsnappy -Wl,-call_shared"
+        else
+            PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lsnappy"
         fi
     fi
 
