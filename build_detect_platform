@@ -168,10 +168,12 @@ EOF
 
     # Test whether Snappy library is installed
     # http://code.google.com/p/snappy/
+    set -x
     $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
       #include <snappy.h>
       int main() {}
 EOF
+    echo "$?"
     if [ "$?" = 0 ]; then
         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
         if [ "$PLATFORM" = "OS_LINUX" ]; then
