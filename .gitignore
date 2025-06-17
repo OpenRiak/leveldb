@@ -21,7 +21,7 @@
 erln8.config
 tmp/
 
-# ===== Common NIF Elements =====
+# ===== Common Compilation Elements =====
 *.a
 *.d
 *.dSYM
