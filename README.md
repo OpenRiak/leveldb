@@ -1,83 +1,86 @@
-leveldb: A key-value store
-Authors: Sanjay Ghemawat (sanjay@google.com) and Jeff Dean (jeff@google.com)
+# Riak LevelDB
 
-The original Google README is now README.GOOGLE.
+[![Build Status](https://github.com/OpenRiak/leveldb/actions/workflows/build.yml/badge.svg)](https://github.com/OpenRiak/leveldb/actions/workflows/build.yml)
 
-** Introduction
+The original Google README, AUTHORS, LICENSE, NEWS, and TODO files have
+been renamed with the extension `.google`.
+
+## Introduction
 
 This repository contains the Google source code as modified to benefit
 the Riak environment.  The typical Riak environment has two attributes
-that necessitate leveldb adjustments, both in options and code:
+that necessitate `leveldb` adjustments, both in options and code:
 
-- production servers: Riak often runs in heavy Internet environments:
-  servers with many CPU cores, lots of memory, and 24x7 disk activity.
-  Basho's leveldb takes advantage of the environment by adding
-  hardware CRC calculation, increasing Bloom filter accuracy, and
-  defaulting to integrity checking enabled.
+### Production Servers
 
-- multiple databases open: Riak opens 8 to 128 databases
-  simultaneously.  Google's leveldb supports this, but its background
-  compaction thread can fall behind.  leveldb will "stall" new user
-  writes whenever the compaction thread gets too far behind.  Basho's
-  leveldb modification include multiple thread blocks that each
-  contain prioritized threads for specific compaction activities.
+Riak often runs in heavy Internet environments on servers with many CPU
+cores, lots of memory, and 24x7 disk activity.
+Riak LevelDB takes advantage of the environment by adding hardware CRC
+calculation, increasing Bloom filter accuracy, and defaulting to
+integrity checking enabled.
 
-Details for Basho's customizations exist in the leveldb wiki:
+### Multiple Databases:
 
-  http://github.com/basho/leveldb/wiki
+Riak often opens up to 128 databases simultaneously.
+Google's leveldb supports this, but its background compaction thread can
+fall behind.
+LevelDB will "stall" new user writes whenever the compaction thread gets
+too far behind.
+Basho's modifications include multiple thread blocks that each contain
+prioritized threads for specific compaction activities.
 
+## Wiki
 
-** Branch pattern
+Details of Riak-specific customizations are found in the
+[wiki](https://github.com/OpenRiak/leveldb/wiki).
 
-This repository follows the Basho standard for branch management 
-as of November 28, 2013.  The standard is found here:
-
-https://github.com/basho/riak/wiki/Basho-repository-management
-
-In summary, the "develop" branch contains the most recently reviewed
-engineering work.  The "master" branch contains the most recently
-released work, i.e. distributed as part of a Riak release.
-
-
-** Basic options needed
+## Basic Options Needed
 
 Those wishing to truly savor the benefits of Basho's modifications
-need to initialize a new leveldb::Options structure similar to the
-following before each call to leveldb::DB::Open:
+need to initialize a new `leveldb::Options` structure similar to the
+following before each call to `leveldb::DB::Open`:
 
+```cplusplus
     leveldb::Options * options;
 
     options=new Leveldb::Options;
 
     options.filter_policy=leveldb::NewBloomFilterPolicy2(16);
-    options.write_buffer_size=62914560;  // 60Mbytes
-    options.total_leveldb_mem=2684354560; // 2.5Gbytes (details below)
+    options.write_buffer_size=62914560;     // 60MB
+    options.total_leveldb_mem=2684354560;   // 2.5GB (details below)
     options.env=leveldb::Env::Default();
+```
 
+## Memory Plan
 
-** Memory plan
-
-Basho's leveldb dramatically departed from Google's original internal
-memory allotment plan with Riak 2.0.  Basho's leveldb uses a methodology
-called flexcache.  The technical details are here:
-
-   https://github.com/basho/leveldb/wiki/mv-flexcache
+Riak LevelDB dramatically departed from Google's original internal memory
+allotment plan with Riak 2.0, using a methodology called flexcache.
+The technical details are
+[here](https://github.com/OpenRiak/leveldb/wiki/mv-flexcache)
 
 The key points are:
 
-- options.total_leveldb_mem is an allocation for the entire process,
+* `options.total_leveldb_mem` is an allocation for the entire process,
   not a single database
 
-- giving different values to options.total_leveldb_mem on subsequent Open
+* Giving different values to `options.total_leveldb_mem` on subsequent `Open`
   calls causes memory to rearrange to current value across all databases
 
-- recommended minimum for Basho's leveldb is 340Mbytes per database.  
+* Recommended minimum for Riak LevelDB is 340MB per database.  
 
-- performance improves rapidly from 340Mbytes to 2.5Gbytes per database (3.0Gbytes
-  if using Riak's active anti-entropy).  Even more is nice, but not as helpful.
+* Performance improves rapidly from 340MB to 2.5GB per database (3.0GB if
+  using Riak's Active Anti-Entropy).
+  Even more is nice, but not as helpful.
 
-- never assign more than 75% of available RAM to total_leveldb_mem.  There is
-  too much unaccounted memory overhead (worse if you use tcmalloc library).
+* **Never** assign more than 75% of available RAM to `total_leveldb_mem`.
+  There is too much unaccounted memory overhead (worse if you use `tcmalloc`
+  library).
 
-- options.max_open_files and options.block_cache should not be used.
-  
+* `options.max_open_files` and `options.block_cache` should not be used.
+
+## To Do
+
+Since the [leveldb_ee](https://github.com/OpenRiak/leveldb_ee) code is now
+open-source, it should be incorporated into this repository and the build
+(here and in [eleveldb](https://github.com/OpenRiak/eleveldb)) adjusted
+accordingly.

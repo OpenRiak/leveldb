@@ -1,0 +1,34 @@
+name: OpenRiak LevelDB CI
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+
+    name: Build and Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Setup
+      run: |
+        LEVELDB_VSN="$(git describe --tags | grep -Eo '^[0-9\.]+')"
+        TEST_CXXFLAGS="-Wno-deprecated -Wno-deprecated-declarations -Wno-narrowing -Wno-c++11-narrowing"
+        echo "LEVELDB_VSN=$LEVELDB_VSN" >> "$GITHUB_ENV"
+        echo "TEST_CXXFLAGS=$TEST_CXXFLAGS" >> "$GITHUB_ENV"
+
+    - name: Build
+      run: LEVELDB_VSN="$LEVELDB_VSN" make all
+
+    - name: Test
+      run: LEVELDB_VSN="$LEVELDB_VSN" CXXFLAGS="$TEST_CXXFLAGS" make test

@@ -15,6 +15,10 @@
 #   PLATFORM_SHARED_VERSIONED   Set to 'true' if platform supports versioned
 #                               shared libraries, empty otherwise.
 #
+#   SOURCES                     libleveldb sources
+#   MEMENV_SOURCES              libmemenv sources
+#   TEST_SOURCES                tests
+#
 # The PLATFORM_CCFLAGS and PLATFORM_CXXFLAGS might include the following:
 #
 #       -DLEVELDB_CSTDATOMIC_PRESENT if <cstdatomic> is present
@@ -54,6 +58,7 @@ PLATFORM_SHARED_EXT=
 PLATFORM_SHARED_LDFLAGS="-shared -Wl,-soname -Wl,"
 PLATFORM_SHARED_CFLAGS="-fPIC"
 PLATFORM_SHARED_VERSIONED=true
+PORT_FILE=port/port_posix.cc
 
 if test -n "$LEVELDB_VSN"; then
     VERSION_FLAGS="$VERSION_FLAGS -DLEVELDB_VSN=\"$LEVELDB_VSN\""
@@ -64,23 +69,17 @@ case "$TARGET_OS" in
     Darwin)
         PLATFORM=OS_MACOSX
         COMMON_FLAGS="-DOS_MACOSX -stdlib=libc++"
-        PLATFORM_LDFLAGS=
-        PLATFORM_SHARED_EXT=
         PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name "
-        PORT_FILE=port/port_posix.cc
         ;;
     Linux)
         PLATFORM=OS_LINUX
         COMMON_FLAGS="-fno-builtin-memcmp -pthread -DOS_LINUX"
         PLATFORM_LDFLAGS="-pthread -lrt"
-        PORT_FILE=port/port_posix.cc
         ;;
     SunOS)
         PLATFORM=OS_SOLARIS
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_SOLARIS -m64"
         PLATFORM_LDFLAGS="-lpthread -lrt"
-        PLATFORM_SHARED_EXT=
-        PORT_FILE=port/port_posix.cc
         ;;
     FreeBSD)
         CC=cc
@@ -88,31 +87,26 @@ case "$TARGET_OS" in
         PLATFORM=OS_FREEBSD
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_FREEBSD"
         PLATFORM_LDFLAGS="-lpthread"
-        PORT_FILE=port/port_posix.cc
         ;;
     NetBSD)
         PLATFORM=OS_NETBSD
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_NETBSD"
         PLATFORM_LDFLAGS="-lpthread -lgcc_s"
-        PORT_FILE=port/port_posix.cc
         ;;
     OpenBSD)
         PLATFORM=OS_OPENBSD
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_OPENBSD"
         PLATFORM_LDFLAGS="-pthread"
-        PORT_FILE=port/port_posix.cc
         ;;
     DragonFly)
         PLATFORM=OS_DRAGONFLYBSD
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_DRAGONFLYBSD"
         PLATFORM_LDFLAGS="-lpthread"
-        PORT_FILE=port/port_posix.cc
         ;;
     OS_ANDROID_CROSSCOMPILE)
         PLATFORM=OS_ANDROID
         COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_ANDROID -DLEVELDB_PLATFORM_POSIX"
         PLATFORM_LDFLAGS=""  # All pthread features are in the Android C library
-        PORT_FILE=port/port_posix.cc
         CROSS_COMPILE=true
         ;;
     *)
@@ -161,11 +155,9 @@ else
     fi
 
     # Test whether Snappy library is installed
-    # http://code.google.com/p/snappy/
-    $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
-      #include <snappy.h>
-      int main() {}
-EOF
+    # https://github.com/OpenRiak/snappy/
+    printf '#include <snappy.h>\nint main() {return 0;}\n' \
+        | $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null
     if [ "$?" = 0 ]; then
         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
         if [ "$PLATFORM" = "OS_LINUX" ]; then
@@ -177,9 +169,8 @@ EOF
     fi
 
     # Test whether tcmalloc is available
-    $CXX $CFLAGS -x c++ - -o /dev/null -ltcmalloc 2>/dev/null  <<EOF
-      int main() {}
-EOF
+    printf 'int main() {return 0;}\n' \
+        | $CXX $CFLAGS -x c++ - -o /dev/null -ltcmalloc 2>/dev/null
     if [ "$?" = 0 ]; then
         PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -ltcmalloc"
     fi
