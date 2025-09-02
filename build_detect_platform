@@ -53,7 +53,7 @@ COMMON_FLAGS=
 CROSS_COMPILE=
 PLATFORM_CCFLAGS=
 PLATFORM_CXXFLAGS=
-PLATFORM_LDFLAGS=
+PLATFORM_LDFLAGS="-lpthread"
 PLATFORM_SHARED_EXT=
 PLATFORM_SHARED_LDFLAGS="-shared -Wl,-soname -Wl,"
 PLATFORM_SHARED_CFLAGS="-fPIC"
@@ -67,45 +67,44 @@ fi
 # On GCC, we pick libc's memcmp over GCC's memcmp via -fno-builtin-memcmp
 case "$TARGET_OS" in
     Darwin)
+        CC=cc
+        CXX="c++"
         PLATFORM=OS_MACOSX
-        COMMON_FLAGS="-DOS_MACOSX -stdlib=libc++"
+        PLATFORM_CXXFLAGS="-stdlib=libc++"
         PLATFORM_SHARED_LDFLAGS="-dynamiclib -install_name "
         ;;
     Linux)
         PLATFORM=OS_LINUX
-        COMMON_FLAGS="-fno-builtin-memcmp -pthread -DOS_LINUX"
-        PLATFORM_LDFLAGS="-pthread -lrt"
+        COMMON_FLAGS="-fno-builtin-memcmp -pthread"
+        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lrt"
         ;;
     SunOS)
         PLATFORM=OS_SOLARIS
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_SOLARIS -m64"
-        PLATFORM_LDFLAGS="-lpthread -lrt"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -m64"
+        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lrt"
         ;;
     FreeBSD)
         CC=cc
-        CXX=c++
+        CXX="c++"
         PLATFORM=OS_FREEBSD
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_FREEBSD"
-        PLATFORM_LDFLAGS="-lpthread"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT"
         ;;
     NetBSD)
         PLATFORM=OS_NETBSD
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_NETBSD"
-        PLATFORM_LDFLAGS="-lpthread -lgcc_s"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT"
+        PLATFORM_LDFLAGS="$PLATFORM_LDFLAGS -lgcc_s"
         ;;
     OpenBSD)
         PLATFORM=OS_OPENBSD
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_OPENBSD"
-        PLATFORM_LDFLAGS="-pthread"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT"
         ;;
     DragonFly)
         PLATFORM=OS_DRAGONFLYBSD
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_DRAGONFLYBSD"
-        PLATFORM_LDFLAGS="-lpthread"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT"
         ;;
     OS_ANDROID_CROSSCOMPILE)
         PLATFORM=OS_ANDROID
-        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DOS_ANDROID -DLEVELDB_PLATFORM_POSIX"
+        COMMON_FLAGS="-fno-builtin-memcmp -D_REENTRANT -DLEVELDB_PLATFORM_POSIX"
         PLATFORM_LDFLAGS=""  # All pthread features are in the Android C library
         CROSS_COMPILE=true
         ;;
@@ -113,6 +112,7 @@ case "$TARGET_OS" in
         echo "Unknown platform!" >&2
         exit 1
 esac
+COMMON_FLAGS="$COMMON_FLAGS -D$PLATFORM"
 
 # We want to make a list of all cc files within util, db, table, and helpers
 # except for the test and benchmark files. By default, find will output a list
@@ -156,8 +156,10 @@ else
 
     # Test whether Snappy library is installed
     # https://github.com/OpenRiak/snappy/
+    # Newer versions of Snappy require newer C++ standards, so pass in what
+    # we've learned about C++ standard support.
     printf '#include <snappy.h>\nint main() {return 0;}\n' \
-        | $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null
+        | $CXX $CFLAGS $PLATFORM_CXXFLAGS -x c++ - -o /dev/null 2>/dev/null
     if [ "$?" = 0 ]; then
         COMMON_FLAGS="$COMMON_FLAGS -DSNAPPY"
         if [ "$PLATFORM" = "OS_LINUX" ]; then
