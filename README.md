@@ -1,6 +1,6 @@
 # Riak LevelDB
 
-[![Build Status](https://github.com/OpenRiak/leveldb/actions/workflows/build.yml/badge.svg)](https://github.com/OpenRiak/leveldb/actions/workflows/build.yml)
+![LevelDB Status](https://github.com/OpenRiak/leveldb/actions/workflows/build.yml/badge.svg?branch=openriak-3.4)
 
 The original Google README, AUTHORS, LICENSE, NEWS, and TODO files have
 been renamed with the extension `.google`.
